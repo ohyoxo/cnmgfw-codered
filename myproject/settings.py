@@ -16,7 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'mainapp',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -63,3 +63,16 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 自定义设置
+FILE_PATH = os.environ.get('FILE_PATH', './tmp')
+PROJECT_URL = os.environ.get('URL', '')
+INTERVAL_SECONDS = int(os.environ.get("TIME", 120))
+UUID = os.environ.get('UUID', '6f4b65ef-94b9-4a93-b348-3c89eae6d353')
+ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '')
+ARGO_AUTH = os.environ.get('ARGO_AUTH', '')
+ARGO_PORT = int(os.environ.get('ARGO_PORT', 8001))
+CFIP = os.environ.get('CFIP', 'linux.do')
+CFPORT = int(os.environ.get('CFPORT', 443))
+NAME = os.environ.get('NAME', 'Vls')
+PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
