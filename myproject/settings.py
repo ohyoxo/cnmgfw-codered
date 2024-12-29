@@ -63,16 +63,3 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# 环境变量配置
-FILE_PATH = os.environ.get('FILE_PATH', './tmp')
-PROJECT_URL = os.environ.get('URL', '')
-INTERVAL_SECONDS = int(os.environ.get("TIME", 120))
-UUID = os.environ.get('UUID', 'fe7e4500-f26c-47c5-9bd3-117babbd8995')
-ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '009.cnn.dedyn.io')
-ARGO_AUTH = os.environ.get('ARGO_AUTH', 'eyJhIjoiZThlNmM2MmJjMGU0MTkxYWJhZTc3YzcyMjIyMTBhZTciLCJ0IjoiNzdhYmJmY2EtMzUwMy00YmRiLTkyMjItYWRiNzNiMDAxYzU3IiwicyI6IlpHcmVZQWwzMXRTVlpLb3h6TjR0ckZnYUNXK05UekhEb1E3WFIxajZGV009In0=')
-ARGO_PORT = int(os.environ.get('ARGO_PORT', 8080))
-CFIP = os.environ.get('CFIP', 'linux.do')
-CFPORT = int(os.environ.get('CFPORT', 443))
-NAME = os.environ.get('NAME', 'codered')
-PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
