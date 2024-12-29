@@ -1,200 +1,63 @@
 import os
 import re
+import shutil
+import subprocess
+import threading
+import requests
 import json
 import time
 import base64
-import shutil
-import requests
-import subprocess
-import threading
-from django.conf import settings
 
-def get_system_architecture():
-    arch = os.uname().machine
-    if 'arm' in arch or 'aarch64' in arch or 'arm64' in arch:
-        return 'arm'
-    return 'amd'
-
-def download_file(file_name, file_url):
-    file_path = os.path.join(settings.FILE_PATH, file_name)
-    with requests.get(file_url, stream=True) as response, open(file_path, 'wb') as file:
-        shutil.copyfileobj(response.raw, file)
-
-def get_files_for_architecture(architecture):
-    if architecture == 'arm':
-        return [
-            {'file_name': 'npm', 'file_url': 'https://github.com/eooce/test/releases/download/arm64/swith'},
-            {'file_name': 'web', 'file_url': 'https://github.com/eooce/test/releases/download/arm64/web'},
-            {'file_name': 'bot', 'file_url': 'https://github.com/eooce/test/releases/download/arm64/bot'},
-        ]
-    elif architecture == 'amd':
-        return [
-            {'file_name': 'npm', 'file_url': 'https://github.com/eooce/test/releases/download/amd64/npm'},
-            {'file_name': 'web', 'file_url': 'https://github.com/eooce/test/releases/download/amd64/web'},
-            {'file_name': 'bot', 'file_url': 'https://github.com/eooce/test/releases/download/amd64/bot'},
-        ]
-    return []
-
-def authorize_files(file_paths):
-    new_permissions = 0o775
-    for relative_file_path in file_paths:
-        absolute_file_path = os.path.join(settings.FILE_PATH, relative_file_path)
-        try:
-            os.chmod(absolute_file_path, new_permissions)
-            print(f"Empowerment success for {absolute_file_path}: {oct(new_permissions)}")
-        except Exception as e:
-            print(f"Empowerment failed for {absolute_file_path}: {e}")
-
-def get_cloud_flare_args():
-    processed_auth = settings.ARGO_AUTH
-    try:
-        auth_data = json.loads(settings.ARGO_AUTH)
-        if 'TunnelSecret' in auth_data and 'AccountTag' in auth_data and 'TunnelID' in auth_data:
-            processed_auth = 'TunnelSecret'
-    except json.JSONDecodeError:
-        pass
-
-    if not processed_auth and not settings.ARGO_DOMAIN:
-        args = f'tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {settings.FILE_PATH}/boot.log --loglevel info --url http://localhost:{settings.ARGO_PORT}'
-    elif processed_auth == 'TunnelSecret':
-        args = f'tunnel --edge-ip-version auto --config {settings.FILE_PATH}/tunnel.yml run'
-    elif processed_auth and settings.ARGO_DOMAIN and 120 <= len(processed_auth) <= 250:
-        args = f'tunnel --edge-ip-version auto --no-autoupdate --protocol http2 run --token {processed_auth}'
-    else:
-        args = f'tunnel --edge-ip-version auto --no-autoupdate --protocol http2 --logfile {settings.FILE_PATH}/boot.log --loglevel info --url http://localhost:{settings.ARGO_PORT}'
-
-    return args
+# 环境变量设置
+FILE_PATH = os.environ.get('FILE_PATH', './tmp')
+PROJECT_URL = os.environ.get('URL', '')
+INTERVAL_SECONDS = int(os.environ.get("TIME", 120))
+UUID = os.environ.get('UUID', '6f4b65ef-94b9-4a93-b348-3c89eae6d353')
+ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '')
+ARGO_AUTH = os.environ.get('ARGO_AUTH', '')
+ARGO_PORT = int(os.environ.get('ARGO_PORT', 8001))
+CFIP = os.environ.get('CFIP', 'linux.do')
+CFPORT = int(os.environ.get('CFPORT', 443))
+NAME = os.environ.get('NAME', 'Vls')
+PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
 
 def generate_config():
     config = {
         "log": {
-            "access": "/dev/null",
-            "error": "/dev/null",
+            "access": "none",
+            "error": "none",
             "loglevel": "none"
         },
         "inbounds": [
             {
-                "port": settings.ARGO_PORT,
+                "port": PORT,
                 "protocol": "vless",
                 "settings": {
                     "clients": [
                         {
-                            "id": settings.UUID,
-                            "flow": ""
-                        }
-                    ],
-                    "decryption": "none",
-                    "fallbacks": [
-                        {
-                            "dest": 3001
-                        },
-                        {
-                            "path": "/vless-argo",
-                            "dest": 3002
-                        },
-                        {
-                            "path": "/vmess-argo",
-                            "dest": 3003
-                        },
-                        {
-                            "path": "/trojan-argo",
-                            "dest": 3004
-                        }
-                    ]
-                },
-                "streamSettings": {
-                    "network": "tcp"
-                }
-            },
-            {
-                "port": 3001,
-                "listen": "127.0.0.1",
-                "protocol": "vless",
-                "settings": {
-                    "clients": [
-                        {
-                            "id": settings.UUID,
+                            "id": UUID,
                             "flow": "xtls-rprx-vision"
                         }
                     ],
-                    "decryption": "none",
-                    "fallbacks": []
+                    "decryption": "none"
                 },
                 "streamSettings": {
                     "network": "tcp",
                     "security": "reality",
                     "realitySettings": {
                         "show": False,
-                        "dest": f"{settings.CFIP}:{settings.CFPORT}",
-                        "xver": 0,
+                        "dest": f"{CFIP}:{CFPORT}",
                         "serverNames": [
-                            settings.CFIP
+                            CFIP,
+                            "www.microsoft.com",
+                            "www.amazon.com",
+                            "www.apple.com",
+                            "www.google.com"
                         ],
-                        "privateKey": "2KZ4uouMKgI8nR-LDJNP1_MHisCJOmKB_LpZXNRf8E4",
-                        "minClientVer": "",
-                        "maxClientVer": "",
-                        "maxTimeDiff": 0,
+                        "privateKey": "2KZ4uouMKgI8nR-LDJNP1_MHisCJOmKB_7J2yKKKXVg",
                         "shortIds": [
                             "6ba85179e30d4fc2"
                         ]
-                    }
-                }
-            },
-            {
-                "port": 3002,
-                "listen": "127.0.0.1",
-                "protocol": "vless",
-                "settings": {
-                    "clients": [
-                        {
-                            "id": settings.UUID
-                        }
-                    ],
-                    "decryption": "none"
-                },
-                "streamSettings": {
-                    "network": "ws",
-                    "security": "none",
-                    "wsSettings": {
-                        "path": "/vless-argo"
-                    }
-                }
-            },
-            {
-                "port": 3003,
-                "listen": "127.0.0.1",
-                "protocol": "vmess",
-                "settings": {
-                    "clients": [
-                        {
-                            "id": settings.UUID
-                        }
-                    ]
-                },
-                "streamSettings": {
-                    "network": "ws",
-                    "security": "none",
-                    "wsSettings": {
-                        "path": "/vmess-argo"
-                    }
-                }
-            },
-            {
-                "port": 3004,
-                "listen": "127.0.0.1",
-                "protocol": "trojan",
-                "settings": {
-                    "clients": [
-                        {
-                            "password": settings.UUID
-                        }
-                    ]
-                },
-                "streamSettings": {
-                    "network": "ws",
-                    "security": "none",
-                    "wsSettings": {
-                        "path": "/trojan-argo"
                     }
                 }
             }
@@ -205,67 +68,120 @@ def generate_config():
             }
         ]
     }
-    
-    with open(os.path.join(settings.FILE_PATH, 'config.json'), 'w', encoding='utf-8') as config_file:
-        json.dump(config, config_file, ensure_ascii=False, indent=2)
 
-def generate_links():
-    def get_domain():
-        if settings.ARGO_AUTH and settings.ARGO_DOMAIN:
-            return settings.ARGO_DOMAIN
+    config_path = os.path.join(FILE_PATH, 'config.json')
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+
+def download_files_and_run():
+    try:
+        # 下载web文件
+        web_url = "https://github.com/fscarmen2/X-for-web/raw/main/web"
+        web_path = os.path.join(FILE_PATH, 'web')
+        response = requests.get(web_url)
+        with open(web_path, 'wb') as f:
+            f.write(response.content)
+        os.chmod(web_path, 0o777)
+        print("Web file downloaded successfully")
+
+        # 下载并解压npm文件
+        npm_url = "https://github.com/fscarmen2/X-for-web/raw/main/npm.tar.gz"
+        npm_path = os.path.join(FILE_PATH, 'npm.tar.gz')
+        response = requests.get(npm_url)
+        with open(npm_path, 'wb') as f:
+            f.write(response.content)
         
-        log_file = os.path.join(settings.FILE_PATH, 'boot.log')
-        try:
-            with open(log_file, 'r', encoding='utf-8') as f:
-                logs = f.read()
-                pattern = r'https://[^.]+\..*\.'
-                matches = re.findall(pattern, logs)
-                if matches:
-                    return matches[-1][:-1]
-        except:
-            pass
-        return None
+        # 解压npm文件
+        shutil.unpack_archive(npm_path, FILE_PATH)
+        os.chmod(os.path.join(FILE_PATH, 'npm'), 0o777)
+        os.remove(npm_path)
+        print("NPM file downloaded and extracted successfully")
 
-    def write_list(domain):
-        if not domain:
-            return
+        # 下载bot文件
+        bot_url = "https://github.com/fscarmen2/X-for-web/raw/main/bot"
+        bot_path = os.path.join(FILE_PATH, 'bot')
+        response = requests.get(bot_url)
+        with open(bot_path, 'wb') as f:
+            f.write(response.content)
+        os.chmod(bot_path, 0o777)
+        print("Bot file downloaded successfully")
+
+        # 生成配置文件
+        generate_config()
+        print("Config generated successfully")
+
+        # 启动web服务
+        subprocess.Popen([web_path], cwd=FILE_PATH)
+        print("Web service started")
+
+    except Exception as e:
+        print(f"Error in download_files_and_run: {str(e)}")
+
+def extract_domains():
+    try:
+        with open(os.path.join(FILE_PATH, 'boot.log'), 'r') as f:
+            log_content = f.read()
+
+        # 提取域名
+        domain_pattern = r'https://([^/\s]+)'
+        domains = re.findall(domain_pattern, log_content)
+        
+        if domains:
+            # 生成订阅内容
+            sub_content = f"vless://{UUID}@{domains[0]}:{PORT}?encryption=none&flow=xtls-rprx-vision&security=reality&sni={CFIP}&fp=chrome&pbk=_YoaXqZPuTakxAzwQQyVsevnmXRfi2Qj-TYl4XLz2G0&sid=6ba85179e30d4fc2&type=tcp&headerType=none#{NAME}"
             
-        vless = f"vless://{settings.UUID}@{settings.CFIP}:443?encryption=none&security=reality&sni={settings.CFIP}&fp=chrome&pbk=jNXHhi6c8g9JXS4gJtkUYw5_iODwHg_NXjCeKmpyKCY&sid=6ba85179e30d4fc2&type=tcp&flow=xtls-rprx-vision#{settings.NAME}-Reality\n"
-        vless_ws = f"vless://{settings.UUID}@{domain}:443?encryption=none&security=tls&type=ws&host={domain}&path=/vless-argo#{settings.NAME}-Vless\n"
-        vmess = json.dumps({
-            "v": "2",
-            "ps": f"{settings.NAME}-Vmess",
-            "add": domain,
-            "port": 443,
-            "id": settings.UUID,
-            "aid": 0,
-            "scy": "none",
-            "net": "ws",
-            "type": "none",
-            "host": domain,
-            "path": "/vmess-argo",
-            "tls": "tls",
-            "sni": "",
-            "alpn": ""
-        })
-        vmess_base64 = "vmess://" + base64.b64encode(vmess.encode('utf-8')).decode('utf-8') + "\n"
-        trojan = f"trojan://{settings.UUID}@{domain}:443?security=tls&type=ws&host={domain}&path=/trojan-argo#{settings.NAME}-Trojan"
+            # 保存到文件
+            sub_path = os.path.join(FILE_PATH, 'sub.txt')
+            with open(sub_path, 'w') as f:
+                f.write(sub_content)
+            print("Domains extracted and subscription content generated")
 
-        links = f"{vless}{vless_ws}{vmess_base64}{trojan}"
-        with open(os.path.join(settings.FILE_PATH, 'list.txt'), 'w', encoding='utf-8') as f:
-            f.write(links)
-        
-        links_bytes = links.encode('utf-8')
-        encoded_links = base64.b64encode(links_bytes).decode('utf-8')
-        with open(os.path.join(settings.FILE_PATH, 'sub.txt'), 'w', encoding='utf-8') as f:
-            f.write(encoded_links)
+            # 保存域名列表
+            list_path = os.path.join(FILE_PATH, 'list.txt')
+            with open(list_path, 'w') as f:
+                f.write('\n'.join(domains))
+            print("Domain list saved")
 
-    def check_domain():
+    except Exception as e:
+        print(f"Error in extract_domains: {str(e)}")
+
+def visit_project_page():
+    if PROJECT_URL:
+        try:
+            response = requests.get(PROJECT_URL)
+            print(f"Visited project page: {response.status_code}")
+        except Exception as e:
+            print(f"Error visiting project page: {str(e)}")
+
+def start_background_tasks():
+    download_files_and_run()
+    extract_domains()
+    
+    def visit_loop():
         while True:
-            domain = get_domain()
-            if domain:
-                write_list(domain)
-                break
-            time.sleep(settings.INTERVAL_SECONDS)
+            visit_project_page()
+            time.sleep(INTERVAL_SECONDS)
+    
+    visit_thread = threading.Thread(target=visit_loop, daemon=True)
+    visit_thread.start()
 
-    threading.Thread(target=check_domain).start()
+def start_server():
+    # 创建目录（如果不存在）
+    if not os.path.exists(FILE_PATH):
+        os.makedirs(FILE_PATH)
+        print(f"{FILE_PATH} has been created")
+    else:
+        print(f"{FILE_PATH} already exists")
+
+    # 清理旧文件
+    paths_to_delete = ['boot.log', 'list.txt','sub.txt', 'npm', 'web', 'bot', 'tunnel.yml', 'tunnel.json']
+    for file in paths_to_delete:
+        file_path = os.path.join(FILE_PATH, file)
+        try:
+            os.unlink(file_path)
+            print(f"{file_path} has been deleted")
+        except Exception as e:
+            print(f"Skip Delete {file_path}")
+    
+    # 启动后台任务
+    start_background_tasks()
