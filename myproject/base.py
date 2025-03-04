@@ -7,7 +7,7 @@ SECRET_KEY = 'django-insecure-your-secret-key-here'  # 请替换为安全的密�
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['helloworld.codered.cloud']
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
