@@ -3,7 +3,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-k2j34h5k2j3ha5kj2h3ka53h23k453h2k3455h23k4532h3k45'
+SECRET_KEY = 'django-insecure-your-secret-key-here'  # 请替换为安全的密钥
 
 DEBUG = True
 
@@ -16,7 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'core',
+    'myapp',
 ]
 
 MIDDLEWARE = [
@@ -64,15 +64,31 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 自定义设置
+# 自定义配置（从环境变量读取）
 FILE_PATH = os.environ.get('FILE_PATH', './tmp')
 PROJECT_URL = os.environ.get('URL', '')
 INTERVAL_SECONDS = int(os.environ.get("TIME", 120))
-UUID = os.environ.get('UUID', '6f4b65ef-94b9-4a93-b348-3c89eae6d353')
+UUID = os.environ.get('UUID', '0004add9-5c68-8bab-870c-08cd5320df00')
 ARGO_DOMAIN = os.environ.get('ARGO_DOMAIN', '')
 ARGO_AUTH = os.environ.get('ARGO_AUTH', '')
 ARGO_PORT = int(os.environ.get('ARGO_PORT', 8001))
-CFIP = os.environ.get('CFIP', 'linux.do')
+CFIP = os.environ.get('CFIP', 'www.visa.com.tw')
 CFPORT = int(os.environ.get('CFPORT', 443))
 NAME = os.environ.get('NAME', 'Vls')
-PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 3000)
+PORT = int(os.environ.get('SERVER_PORT') or os.environ.get('PORT') or 8000)
+
+# 创建目录并清理旧文件
+if not os.path.exists(FILE_PATH):
+    os.makedirs(FILE_PATH)
+    print(f"{FILE_PATH} has been created")
+else:
+    print(f"{FILE_PATH} already exists")
+
+paths_to_delete = ['boot.log', 'list.txt', 'sub.txt', 'npm', 'web', 'bot', 'tunnel.yml', 'tunnel.json']
+for file in paths_to_delete:
+    file_path = os.path.join(FILE_PATH, file)
+    try:
+        os.unlink(file_path)
+        print(f"{file_path} has been deleted")
+    except Exception as e:
+        print(f"Skip Delete {file_path}")
